@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "599694618593",
+    "project_id": "test-connect-8dfca",
+    "storage_bucket": "test-connect-8dfca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:599694618593:android:06edb018f76a291384aca0",
+        "android_client_info": {
+          "package_name": "com.example.test_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxZm8HpGczJZf0ZDz3PoDjxHmgXTC5aKc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
