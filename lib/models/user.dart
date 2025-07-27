@@ -2,7 +2,7 @@ class UserModel {
   final String id;
   final String email;
   final String? name;
-  final String? phoneNumber;
+  final String? tel;
   final String? address;
   final String? profileImageUrl;
 
@@ -10,7 +10,7 @@ class UserModel {
     required this.id,
     required this.email,
     this.name,
-    this.phoneNumber,
+    this.tel,
     this.address,
     this.profileImageUrl,
   });
@@ -20,7 +20,7 @@ class UserModel {
       id: id,
       email: map['email'] ?? '',
       name: map['name'],
-      phoneNumber: map['phoneNumber'],
+      tel: map['tel'],
       address: map['address'],
       profileImageUrl: map['profileImageUrl'],
     );
@@ -30,7 +30,7 @@ class UserModel {
     return {
       'email': email,
       'name': name,
-      'phoneNumber': phoneNumber,
+      'tel': tel,
       'address': address,
       'profileImageUrl': profileImageUrl,
     };

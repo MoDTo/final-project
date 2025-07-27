@@ -8,7 +8,7 @@ class Order {
   final String status;
   final DateTime orderDate;
   final String? deliveryAddress;
-  final String? phoneNumber;
+  final String? tel;
 
   Order({
     required this.id,
@@ -18,7 +18,7 @@ class Order {
     required this.status,
     required this.orderDate,
     this.deliveryAddress,
-    this.phoneNumber,
+    this.tel,
   });
 
   factory Order.fromMap(Map<String, dynamic> map, String id) {
@@ -34,7 +34,7 @@ class Order {
       status: map['status'] ?? 'pending',
       orderDate: (map['orderDate'] as Timestamp).toDate(),
       deliveryAddress: map['deliveryAddress'],
-      phoneNumber: map['phoneNumber'],
+      tel: map['tel'],
     );
   }
 
@@ -46,7 +46,7 @@ class Order {
       'status': status,
       'orderDate': orderDate,
       'deliveryAddress': deliveryAddress,
-      'phoneNumber': phoneNumber,
+      'tel': tel,
     };
   }
 }
@@ -86,4 +86,3 @@ class OrderItem {
     };
   }
 }
- 

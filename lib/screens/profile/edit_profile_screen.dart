@@ -20,7 +20,7 @@ class EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _telController = TextEditingController();
   final TextEditingController _birthdayController = TextEditingController();
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
@@ -47,7 +47,7 @@ class EditProfilePageState extends State<EditProfilePage> {
       setState(() {
         _fullNameController.text = doc.data()?['fullName'] ?? '';
         _emailController.text = user.email ?? '';
-        _phoneController.text = doc.data()?['phone'] ?? '';
+        _telController.text = doc.data()?['tel'] ?? '';
         _birthdayController.text = doc.data()?['birthday'] ?? '';
         _isLoading = false;
       });
@@ -97,7 +97,7 @@ class EditProfilePageState extends State<EditProfilePage> {
               .doc(user.uid)
               .update({
                 'fullName': _fullNameController.text,
-                'phone': _phoneController.text,
+                'tel': _telController.text,
                 'birthday': _birthdayController.text,
                 'updatedAt': FieldValue.serverTimestamp(),
               });
@@ -262,7 +262,7 @@ class EditProfilePageState extends State<EditProfilePage> {
                           const SizedBox(height: 16),
 
                           _buildTextField(
-                            controller: _phoneController,
+                            controller: _telController,
                             label: l10n.get('phone'),
                             hintText: l10n.get('phone'),
                             icon: Icons.phone_outlined,

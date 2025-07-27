@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,21 +20,57 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
-  final _nameController = TextEditingController();
   final _notesController = TextEditingController();
 
   String _selectedPaymentMethod = 'cash';
   bool _useCurrentLocation = false;
 
+  // User data variables
+  String _userName = '';
+  String _userPhone = '';
+  bool _isLoadingUserData = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
   @override
   void dispose() {
-    _phoneController.dispose();
     _addressController.dispose();
-    _nameController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (!mounted) return;
+
+        setState(() {
+          _userName = doc.data()?['username'] ?? '';
+          _userPhone = doc.data()?['tel'] ?? '';
+          _isLoadingUserData = false;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _isLoadingUserData = false;
+        });
+      }
+    } else {
+      setState(() {
+        _isLoadingUserData = false;
+      });
+    }
   }
 
   Future<void> _submitOrder() async {
@@ -52,29 +87,53 @@ class _CheckoutPageState extends State<CheckoutPage> {
         return;
       }
 
-      // เตรียมข้อมูลออเดอร์
-      final orderData = {
-        'items': widget.cartItems
-            .map(
-              (item) => {
-                'name': item['product']['name'],
-                'price': item['product']['price'],
-                'quantity': item['quantity'],
-              },
-            )
-            .toList(),
-        'totalPrice': widget.totalPrice,
-        'customerName': _nameController.text,
-        'phone': _phoneController.text,
-        'address': _addressController.text,
-        'notes': _notesController.text,
-        'paymentMethod': _selectedPaymentMethod,
-        'createdAt': FieldValue.serverTimestamp(),
-        'status': 'pending',
-        'userId': user.uid,
-      };
-
+      // ดึงข้อมูล user จาก Firestore
       try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ไม่พบข้อมูลผู้ใช้ กรุณาลงทะเบียนใหม่'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        final userData = userDoc.data()!;
+        final userName = userData['username'] ?? '';
+        final userPhone = userData['tel'] ?? '';
+        final userEmail = userData['email'] ?? '';
+
+        // เตรียมข้อมูลออเดอร์
+        final orderData = {
+          'items': widget.cartItems
+              .map(
+                (item) => {
+                  'name': item['product']['name'],
+                  'price': item['product']['price'],
+                  'quantity': item['quantity'],
+                },
+              )
+              .toList(),
+          'totalPrice': widget.totalPrice,
+          'customerName': userName,
+          'tel': userPhone,
+          'email': userEmail,
+          'address': _addressController.text,
+          'notes': _notesController.text,
+          'paymentMethod': _selectedPaymentMethod,
+          'createdAt': FieldValue.serverTimestamp(),
+          'status': 'pending',
+          'userId': user.uid,
+          'userEmail': user.email,
+        };
+
         await FirebaseFirestore.instance.collection('orders').add(orderData);
 
         // ลบ cart ของ user หลังสั่งซื้อ
@@ -374,92 +433,45 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              labelText: l10n.get('full_name'),
-              hintText: l10n.get('full_name'),
-              prefixIcon: const Icon(Icons.person, color: Color(0xFF1A1A1A)),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FA),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 16,
-                horizontal: 16,
+          if (_isLoadingUserData)
+            const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1A1A)),
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFF1A1A1A),
-                  width: 2,
+            )
+          else ...[
+            Row(
+              children: [
+                const Icon(Icons.person, color: Color(0xFF1A1A1A), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _userName.isNotEmpty ? _userName : 'ไม่ระบุชื่อ',
+                    style: const TextStyle(
+                      color: Color(0xFF1A1A1A),
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red, width: 1),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red, width: 2),
-              ),
+              ],
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return l10n.get('please_enter_full_name');
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _phoneController,
-            decoration: InputDecoration(
-              labelText: l10n.get('phone'),
-              hintText: l10n.get('phone_hint'),
-              prefixIcon: const Icon(Icons.phone, color: Color(0xFF1A1A1A)),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FA),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 16,
-                horizontal: 16,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFF1A1A1A),
-                  width: 2,
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.phone, color: Color(0xFF1A1A1A), size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _userPhone.isNotEmpty ? _userPhone : 'ไม่ระบุเบอร์โทร',
+                    style: const TextStyle(
+                      color: Color(0xFF1A1A1A),
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red, width: 1),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.red, width: 2),
-              ),
+              ],
             ),
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9-]')),
-            ],
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return l10n.get('please_enter_phone');
-              }
-              if (value.length < 10) {
-                return l10n.get('please_enter_valid_phone');
-              }
-              return null;
-            },
-          ),
+          ],
         ],
       ),
     );
